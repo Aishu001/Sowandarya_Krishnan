@@ -1,8 +1,16 @@
+import express from 'express';
 import { Client } from '@elastic/elasticsearch';
-
-
+import cors from 'cors'; // Import cors
+import dotenv from 'dotenv';
+const app = express();
 const client = new Client({ node: 'http://localhost:9200' });
 
+
+dotenv.config();
+
+// Middleware to parse JSON
+app.use(express.json());
+app.use(cors());
 
 async function createCollection(p_collection_name) {
     try {
@@ -212,4 +220,31 @@ await searchByColumn(v_nameCollection, 'gender', 'Male');
 })();
 
 
-  
+// New search endpoint
+app.get('/search', async (req, res) => {
+    const { name } = req.query;
+    const collectionName = 'Hash_Sowandarya'; // Your collection name
+
+    try {
+        const result = await client.search({
+            index: collectionName.toLowerCase(),
+            body: {
+                query: {
+                    match: {
+                        name: name,
+                    },
+                },
+            },
+        });
+        res.json(result.hits.hits); // Return the search results
+    } catch (error) {
+        console.error('Error searching by name:', error);
+        res.status(500).send('Error searching by name');
+    }
+});
+
+// Start the server
+const PORT = 3000;
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});
